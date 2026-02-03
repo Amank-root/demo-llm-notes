@@ -1,0 +1,62 @@
+{
+  "name": "note-llm-backend",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch ./src/index.ts",
+    "start": "bun ./src/index.ts",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "db:generate": "bun --bun prisma generate",
+    "db:push": "bun --bun prisma db push",
+    "db:migrate": "bun --bun prisma migrate dev",
+    "db:studio": "bun --bun prisma studio",
+    "db:seed": "bun ./src/scripts/seed.ts"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/bun": "latest",
+    "@types/cors": "^2.8.19",
+    "@types/crypto-js": "^4.2.2",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/pg": "^8.16.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.10",
+    "@langchain/core": "^1.1.18",
+    "@langchain/openai": "^1.2.4",
+    "@langchain/textsplitters": "^1.0.1",
+    "@prisma/adapter-pg": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "@types/multer": "^2.0.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "firebase": "^12.8.0",
+    "firebase-admin": "^13.6.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "langchain": "^1.2.16",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "openai": "^6.17.0",
+    "pg": "^8.18.0",
+    "pgvector": "^0.2.1",
+    "prisma": "^7.3.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "unpdf": "^1.4.0"
+  }
+}

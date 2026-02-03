@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    /* Runtime & output */
+    "target": "ESNext",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+
+    /* Bun / Node compatibility */
+    "lib": ["ESNext"],
+    "types": ["bun-types", "node"],
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    /* TypeScript behavior */
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Imports */
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+
+    /* DX preferences */
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": ["temp/src/**/*"],
+  "exclude": ["node_modules"]
+}

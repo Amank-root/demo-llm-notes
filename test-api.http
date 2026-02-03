@@ -1,0 +1,527 @@
+@baseUrl = http://localhost:3000/api
+@adminToken = YOUR_FIREBASE_ADMIN_TOKEN_HERE
+@userToken = YOUR_FIREBASE_USER_TOKEN_HERE
+
+### ========================================
+### HEALTH CHECK
+### ========================================
+
+### Health Check
+GET http://localhost:3000/health
+
+### ========================================
+### AUTHENTICATION
+### ========================================
+
+### Register User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "displayName": "Test User"
+}
+
+### ========================================
+### PLANS (Public + Admin)
+### ========================================
+
+### Get All Plans (Public)
+GET {{baseUrl}}/plans
+
+### Get Single Plan
+GET {{baseUrl}}/plans/{{planId}}
+
+### Create Plan (Admin Only)
+POST {{baseUrl}}/plans
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Test Plan",
+  "price": 199,
+  "durationDays": 30,
+  "aiLimitPerDay": 15,
+  "mockTestLimit": 30,
+  "adsEnabled": false,
+  "features": {
+    "notes_access": "full",
+    "mock_tests": "unlimited"
+  }
+}
+
+### Update Plan (Admin Only)
+PUT {{baseUrl}}/plans/{{planId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "price": 249,
+  "aiLimitPerDay": 20
+}
+
+### Delete Plan (Admin Only)
+DELETE {{baseUrl}}/plans/{{planId}}
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### USERS
+### ========================================
+
+### Get Current User
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{userToken}}
+
+### Update Current User
+PUT {{baseUrl}}/users/me
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "name": "Updated Name"
+}
+
+### Get User Profile
+GET {{baseUrl}}/users/me/profile
+Authorization: Bearer {{userToken}}
+
+### Update User Profile
+PUT {{baseUrl}}/users/me/profile
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "classLevel": "12th Grade",
+  "interests": ["Physics", "Chemistry", "Mathematics"],
+  "examCategory": "JEE",
+  "dailyStudyHours": 6,
+  "language": "English"
+}
+
+### Get Active Subscription
+GET {{baseUrl}}/users/me/subscription
+Authorization: Bearer {{userToken}}
+
+### Get Purchase History
+GET {{baseUrl}}/users/me/purchases
+Authorization: Bearer {{userToken}}
+
+### Get All Users (Admin)
+GET {{baseUrl}}/users?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get User By ID (Admin)
+GET {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### Ban User (Admin)
+PATCH {{baseUrl}}/users/{{userId}}/ban
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "isBanned": true
+}
+
+### Update User Role (Admin)
+PATCH {{baseUrl}}/users/{{userId}}/role
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "role": "ADMIN"
+}
+
+### ========================================
+### PURCHASES
+### ========================================
+
+### Create Purchase
+POST {{baseUrl}}/purchases
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "planId": "{{planId}}",
+  "provider": "razorpay"
+}
+
+### Confirm Payment
+POST {{baseUrl}}/purchases/confirm
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "purchaseId": "{{purchaseId}}",
+  "paymentTxnId": "pay_abc123"
+}
+
+### Get All Purchases (Admin)
+GET {{baseUrl}}/purchases?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### Refund Purchase (Admin)
+POST {{baseUrl}}/purchases/{{purchaseId}}/refund
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### NOTES MARKETPLACE
+### ========================================
+
+### Get All Notes (Public)
+GET {{baseUrl}}/notes?subject=Physics&examType=JEE
+
+### Get Note By ID
+GET {{baseUrl}}/notes/{{noteId}}
+
+### Create Note (Seller)
+POST {{baseUrl}}/notes
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "title": "Physics Complete Notes - JEE",
+  "subject": "Physics",
+  "examType": "JEE",
+  "description": "Comprehensive physics notes covering all JEE topics",
+  "price": 299,
+  "fileUrl": "https://storage.firebase.com/notes/physics-jee.pdf",
+  "thumbnailUrl": "https://storage.firebase.com/thumbs/physics-jee.jpg"
+}
+
+### Update Note
+PUT {{baseUrl}}/notes/{{noteId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "price": 349,
+  "description": "Updated description"
+}
+
+### Delete Note
+DELETE {{baseUrl}}/notes/{{noteId}}
+Authorization: Bearer {{userToken}}
+
+### Get My Notes (Seller)
+GET {{baseUrl}}/notes/seller/my-notes
+Authorization: Bearer {{userToken}}
+
+### Get Purchased Notes (Buyer)
+GET {{baseUrl}}/notes/buyer/purchased
+Authorization: Bearer {{userToken}}
+
+### Get Pending Notes (Admin)
+GET {{baseUrl}}/notes/admin/pending
+Authorization: Bearer {{adminToken}}
+
+### Approve Note (Admin)
+PATCH {{baseUrl}}/notes/{{noteId}}/approve
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "approved": true
+}
+
+### ========================================
+### NOTE ORDERS & ESCROW
+### ========================================
+
+### Purchase Note
+POST {{baseUrl}}/orders/purchase
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "noteId": "{{noteId}}"
+}
+
+### Get My Orders (Buyer)
+GET {{baseUrl}}/orders/my-orders
+Authorization: Bearer {{userToken}}
+
+### Get My Sales (Seller)
+GET {{baseUrl}}/orders/my-sales
+Authorization: Bearer {{userToken}}
+
+### Get Wallet
+GET {{baseUrl}}/orders/wallet
+Authorization: Bearer {{userToken}}
+
+### Create Dispute
+POST {{baseUrl}}/orders/dispute
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "orderId": "{{orderId}}",
+  "reason": "The notes quality is poor and content is incomplete"
+}
+
+### Get My Disputes
+GET {{baseUrl}}/orders/my-disputes
+Authorization: Bearer {{userToken}}
+
+### Get All Orders (Admin)
+GET {{baseUrl}}/orders?status=HELD
+Authorization: Bearer {{adminToken}}
+
+### Release Escrow (Admin)
+POST {{baseUrl}}/orders/{{orderId}}/release
+Authorization: Bearer {{adminToken}}
+
+### Refund Order (Admin)
+POST {{baseUrl}}/orders/{{orderId}}/refund
+Authorization: Bearer {{adminToken}}
+
+### Get All Disputes (Admin)
+GET {{baseUrl}}/orders/disputes/all?status=OPEN
+Authorization: Bearer {{adminToken}}
+
+### Resolve Dispute (Admin)
+PATCH {{baseUrl}}/orders/disputes/{{disputeId}}/resolve
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "RESOLVED",
+  "resolution": "Refund issued due to quality issues",
+  "refund": true
+}
+
+### Process Escrow Release (Cron Job)
+POST {{baseUrl}}/orders/cron/release-escrow
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### MOCK TESTS
+### ========================================
+
+### Get All Mock Tests (Public)
+GET {{baseUrl}}/tests?subject=Physics&difficulty=Medium
+
+### Get Mock Test
+GET {{baseUrl}}/tests/{{testId}}
+
+### Create Mock Test (Admin)
+POST {{baseUrl}}/tests
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "title": "Physics Chapter 1 - Mechanics",
+  "subject": "Physics",
+  "examType": "JEE",
+  "totalMarks": 20,
+  "durationMinutes": 30,
+  "description": "Test your knowledge of mechanics",
+  "difficulty": "Medium",
+  "questions": [
+    {
+      "questionText": "What is the unit of force?",
+      "options": {"A": "Joule", "B": "Newton", "C": "Watt", "D": "Pascal"},
+      "correctAnswer": "B",
+      "topic": "Units and Measurements",
+      "difficulty": "Easy",
+      "explanation": "Force is measured in Newtons (N)",
+      "marks": 2
+    },
+    {
+      "questionText": "A body of mass 2kg is moving with velocity 3 m/s. What is its kinetic energy?",
+      "options": {"A": "6 J", "B": "9 J", "C": "12 J", "D": "18 J"},
+      "correctAnswer": "B",
+      "topic": "Work Energy Power",
+      "difficulty": "Medium",
+      "explanation": "KE = 1/2 * m * v^2 = 1/2 * 2 * 9 = 9 J",
+      "marks": 3
+    }
+  ]
+}
+
+### Update Mock Test (Admin)
+PUT {{baseUrl}}/tests/{{testId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "durationMinutes": 45,
+  "totalMarks": 25
+}
+
+### Delete Mock Test (Admin)
+DELETE {{baseUrl}}/tests/{{testId}}
+Authorization: Bearer {{adminToken}}
+
+### Add Question to Test (Admin)
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "questionText": "What is Newton's first law?",
+  "options": {
+    "A": "Law of inertia",
+    "B": "F = ma",
+    "C": "Action-reaction",
+    "D": "Conservation of energy"
+  },
+  "correctAnswer": "A",
+  "topic": "Laws of Motion",
+  "difficulty": "Easy",
+  "marks": 2
+}
+
+### Update Question (Admin)
+PUT {{baseUrl}}/tests/questions/{{questionId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "marks": 3,
+  "explanation": "Newton's first law states that a body remains at rest or in uniform motion unless acted upon by an external force"
+}
+
+### Delete Question (Admin)
+DELETE {{baseUrl}}/tests/questions/{{questionId}}
+Authorization: Bearer {{adminToken}}
+
+### Submit Test
+POST {{baseUrl}}/tests/submit
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "mockTestId": "{{testId}}",
+  "answers": {
+    "question1Id": "B",
+    "question2Id": "B"
+  },
+  "timeTaken": 1200
+}
+
+### Get My Test Attempts
+GET {{baseUrl}}/tests/attempts/my
+Authorization: Bearer {{userToken}}
+
+### Get Attempt Details
+GET {{baseUrl}}/tests/attempts/{{attemptId}}
+Authorization: Bearer {{userToken}}
+
+### ========================================
+### ANALYTICS (Admin)
+### ========================================
+
+### Get Dashboard
+GET {{baseUrl}}/analytics/dashboard
+Authorization: Bearer {{adminToken}}
+
+### Get Daily Metrics
+GET {{baseUrl}}/analytics/metrics?days=30
+Authorization: Bearer {{adminToken}}
+
+### Record Daily Metrics (Cron)
+POST {{baseUrl}}/analytics/metrics/record
+Authorization: Bearer {{adminToken}}
+
+### Get User Growth Chart
+GET {{baseUrl}}/analytics/charts/user-growth?days=30
+Authorization: Bearer {{adminToken}}
+
+### Get Revenue Chart
+GET {{baseUrl}}/analytics/charts/revenue?days=30
+Authorization: Bearer {{adminToken}}
+
+### Get Top Sellers
+GET {{baseUrl}}/analytics/top-sellers?limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Popular Notes
+GET {{baseUrl}}/analytics/popular-notes?limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Plan Distribution
+GET {{baseUrl}}/analytics/plan-distribution
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### AI FEATURES
+### ========================================
+
+### Upload PDF Document
+# Note: Use a tool like Postman or curl for file uploads
+# curl -X POST http://localhost:3000/api/ai/documents/upload \
+#   -H "Authorization: Bearer YOUR_TOKEN" \
+#   -F "file=@/path/to/document.pdf" \
+#   -F "title=My Study Notes"
+
+### Get All Documents
+GET {{baseUrl}}/ai/documents
+Authorization: Bearer {{userToken}}
+
+### Get Single Document
+GET {{baseUrl}}/ai/documents/{{documentId}}
+Authorization: Bearer {{userToken}}
+
+### Delete Document
+DELETE {{baseUrl}}/ai/documents/{{documentId}}
+Authorization: Bearer {{userToken}}
+
+### Ask Question (RAG)
+POST {{baseUrl}}/ai/ask
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "question": "What are the main topics covered in my documents?",
+  "documentId": "optional-specific-document-id"
+}
+
+### Summarize Document
+POST {{baseUrl}}/ai/documents/{{documentId}}/summarize
+Authorization: Bearer {{userToken}}
+
+### Generate Practice Questions
+POST {{baseUrl}}/ai/documents/{{documentId}}/generate-questions
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "count": 5
+}
+
+### Evaluate Answer
+POST {{baseUrl}}/ai/evaluate
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "question": "What is photosynthesis?",
+  "answer": "Photosynthesis is the process by which plants convert sunlight into energy.",
+  "documentId": "optional-document-id"
+}
+
+### General Chat
+POST {{baseUrl}}/ai/chat
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Can you help me understand how to study effectively for exams?",
+  "history": []
+}
+
+### Search Documents
+POST {{baseUrl}}/ai/search
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "query": "photosynthesis process",
+  "limit": 5
+}
+
+### Get AI Usage Stats
+GET {{baseUrl}}/ai/usage
+Authorization: Bearer {{userToken}}

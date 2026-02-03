@@ -1,0 +1,424 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PlanType {
+  FREE
+  BASIC
+  PREMIUM
+  ULTIMATE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  DISPUTED
+  REFUNDED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+enum NotificationType {
+  EXAM_UPDATE
+  NOTE_PURCHASED
+  TEST_RESULT
+  PAYMENT_SUCCESS
+  ESCROW_RELEASE
+  DISPUTE_UPDATE
+  GENERAL
+}
+
+enum AIFeatureType {
+  SYLLABUS_SCAN
+  QUESTION_GENERATION
+  ANSWER_EVALUATION
+  SUMMARY
+  CAREER_GUIDANCE
+  DOUBT_SOLVING
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id           String    @id @default(uuid())
+  firebaseUid  String    @unique @map("firebase_uid")
+  email        String    @unique
+  name         String
+  role         UserRole  @default(USER)
+  planType     PlanType  @default(FREE) @map("plan_type")
+  recoveryToken String?  @default(cuid()) @map("recovery_token")
+  isBanned     Boolean   @default(false) @map("is_banned")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  profile         UserProfile?
+  purchases       Purchase[]
+  notesCreated    Note[]            @relation("NoteSeller")
+  notesPurchased  NoteOrder[]       @relation("NoteBuyer")
+  testAttempts    TestAttempt[]
+  aiRequests      AIRequest[]
+  deviceTokens    DeviceToken[]
+  notifications   Notification[]
+  wallet          SellerWallet?
+  transactions    Transaction[]
+  disputes        Dispute[]
+  documents       Document[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  classLevel       String?  @map("class_level")
+  interests        Json?
+  examCategory     String?  @map("exam_category")
+  dailyStudyHours  Int?     @map("daily_study_hours")
+  language         String?  @default("English")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// ============================================
+// SUBSCRIPTION & PAYMENTS
+// ============================================
+
+model Plan {
+  id               String    @id @default(uuid())
+  name             String    @unique
+  price            Float
+  durationDays     Int       @map("duration_days")
+  aiLimitPerDay    Int       @map("ai_limit_per_day")
+  mockTestLimit    Int       @map("mock_test_limit")
+  adsEnabled       Boolean   @default(true) @map("ads_enabled")
+  features         Json?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  
+  purchases Purchase[]
+
+  @@map("plans")
+}
+
+model Purchase {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  planId        String        @map("plan_id")
+  amount        Float
+  paymentTxnId  String?       @map("payment_txn_id")
+  provider      String?
+  status        PaymentStatus @default(PENDING)
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime      @map("end_date")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan @relation(fields: [planId], references: [id])
+
+  @@map("purchases")
+}
+
+// ============================================
+// STUDY CONTENT - NOTES MARKETPLACE
+// ============================================
+
+model Note {
+  id          String    @id @default(uuid())
+  title       String
+  subject     String
+  examType    String    @map("exam_type")
+  description String?   @db.Text
+  price       Float
+  sellerId    String    @map("seller_id")
+  fileUrl     String    @map("file_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  approved    Boolean   @default(false)
+  downloads   Int       @default(0)
+  rating      Float?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  seller User        @relation("NoteSeller", fields: [sellerId], references: [id])
+  orders NoteOrder[]
+
+  @@map("notes")
+}
+
+model NoteOrder {
+  id                String       @id @default(uuid())
+  noteId            String       @map("note_id")
+  buyerId           String       @map("buyer_id")
+  sellerId          String       @map("seller_id")
+  amount            Float
+  commissionAmount  Float        @map("commission_amount")
+  escrowStatus      EscrowStatus @default(HELD) @map("escrow_status")
+  escrowHeldAt      DateTime     @default(now()) @map("escrow_held_at")
+  releasedAt        DateTime?    @map("released_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  note     Note       @relation(fields: [noteId], references: [id])
+  buyer    User       @relation("NoteBuyer", fields: [buyerId], references: [id])
+  disputes Dispute[]
+  transaction Transaction?
+
+  @@map("note_orders")
+}
+
+model SellerWallet {
+  id        String   @id @default(uuid())
+  sellerId  String   @unique @map("seller_id")
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("seller_wallets")
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  sellerId  String   @map("seller_id")
+  orderId   String   @unique @map("order_id")
+  amount    Float
+  type      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  seller User      @relation(fields: [sellerId], references: [id])
+  order  NoteOrder @relation(fields: [orderId], references: [id])
+
+  @@map("transactions")
+}
+
+model Dispute {
+  id         String        @id @default(uuid())
+  orderId    String        @map("order_id")
+  userId     String        @map("user_id")
+  reason     String        @db.Text
+  status     DisputeStatus @default(OPEN)
+  resolvedBy String?       @map("resolved_by")
+  resolution String?       @db.Text
+  createdAt  DateTime      @default(now()) @map("created_at")
+  resolvedAt DateTime?     @map("resolved_at")
+
+  order NoteOrder @relation(fields: [orderId], references: [id])
+  user  User      @relation(fields: [userId], references: [id])
+
+  @@map("disputes")
+}
+
+// ============================================
+// MOCK TESTS
+// ============================================
+
+model MockTest {
+  id              String   @id @default(uuid())
+  title           String
+  subject         String
+  examType        String   @map("exam_type")
+  totalMarks      Int      @map("total_marks")
+  durationMinutes Int      @map("duration_minutes")
+  description     String?  @db.Text
+  difficulty      String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  questions Question[]
+  attempts  TestAttempt[]
+
+  @@map("mock_tests")
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  mockTestId    String   @map("mock_test_id")
+  questionText  String   @map("question_text") @db.Text
+  options       Json
+  correctAnswer String   @map("correct_answer")
+  topic         String?
+  difficulty    String?
+  explanation   String?  @db.Text
+  marks         Int      @default(1)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  mockTest MockTest @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+model TestAttempt {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  mockTestId  String   @map("mock_test_id")
+  score       Float
+  totalMarks  Int      @map("total_marks")
+  timeTaken   Int      @map("time_taken")
+  weakTopics  Json?    @map("weak_topics")
+  answers     Json?
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockTest MockTest @relation(fields: [mockTestId], references: [id])
+
+  @@map("test_attempts")
+}
+
+// ============================================
+// AI FEATURES
+// ============================================
+
+model AIRequest {
+  id             String        @id @default(uuid())
+  userId         String        @map("user_id")
+  featureType    AIFeatureType @map("feature_type")
+  model          String?
+  inputTokens    Int?          @map("input_tokens")
+  outputTokens   Int?          @map("output_tokens")
+  estimatedCost  Float?        @map("estimated_cost")
+  promptHash     String?       @map("prompt_hash")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outputs AIOutput[]
+
+  @@map("ai_requests")
+}
+
+model AIOutput {
+  id         String   @id @default(uuid())
+  requestId  String   @map("request_id")
+  prompt     String   @db.Text
+  response   String   @db.Text
+  cached     Boolean  @default(false)
+  promptHash String?  @map("prompt_hash")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  request AIRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([promptHash])
+  @@map("ai_outputs")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  fcmToken  String   @map("fcm_token")
+  platform  String
+  lastSeen  DateTime @default(now()) @map("last_seen")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fcmToken])
+  @@map("device_tokens")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  title     String
+  body      String           @db.Text
+  type      NotificationType
+  data      Json?
+  sent      Boolean          @default(false)
+  read      Boolean          @default(false)
+  sentAt    DateTime?        @map("sent_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model DailyMetric {
+  id           String   @id @default(uuid())
+  date         DateTime @unique
+  newUsers     Int      @default(0) @map("new_users")
+  activeUsers  Int      @default(0) @map("active_users")
+  purchases    Int      @default(0)
+  revenue      Float    @default(0)
+  aiCalls      Int      @default(0) @map("ai_calls")
+  notesDownloads Int    @default(0) @map("notes_downloads")
+  testsAttempted Int    @default(0) @map("tests_attempted")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("daily_metrics")
+}
+
+// ============================================
+// AI DOCUMENTS & EMBEDDINGS
+// ============================================
+
+model Document {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  title       String
+  fileName    String   @map("file_name")
+  fileUrl     String   @map("file_url")
+  fileSize    Int      @map("file_size")
+  mimeType    String   @map("mime_type")
+  pageCount   Int?     @map("page_count")
+  status      String   @default("processing") // processing, ready, failed
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks DocumentChunk[]
+
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  content     String   @db.Text
+  pageNumber  Int?     @map("page_number")
+  chunkIndex  Int      @map("chunk_index")
+  tokenCount  Int?     @map("token_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_chunks")
+}
+
+// Note: Embeddings table created via raw SQL for pgvector support
